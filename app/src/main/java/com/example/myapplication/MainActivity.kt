@@ -1,50 +1,95 @@
 package com.example.myapplication
 
 import android.os.Bundle
-import android.util.Log
-import androidx.activity.enableEdgeToEdge
+import android.view.View
+import android.widget.Button
+import android.widget.GridLayout
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var board: Array<Array<String>>
+    private lateinit var buttons: Array<Array<Button>>
+    private lateinit var statusTextView: TextView
+    private lateinit var resetButton: Button
+    private var currentPlayer = "X"
+    private var isGameOver = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+
+        // Initialize board and UI components
+        board = Array(3) { Array(3) { "" } }
+        statusTextView = findViewById(R.id.main_status_textview)
+        resetButton = findViewById(R.id.main_reset_button)
+
+        buttons = Array(3) { row ->
+            Array(3) { col ->
+                val buttonId = resources.getIdentifier("main_mark_btn_${row}${col}", "id", packageName)
+                findViewById<Button>(buttonId).apply {
+                    setOnClickListener { onCellClick(this, row, col) }
+                }
+            }
         }
-        Log.d("MainActivity", "onCreate")
 
+        resetButton.setOnClickListener { resetGame() }
     }
 
-    override fun onResume() {
-        super.onResume()
-        Log.d("MainActivity", "onResume")
+    private fun onCellClick(button: Button, row: Int, col: Int) {
+        if (isGameOver || board[row][col].isNotEmpty()) return
+
+        // Update board and button
+        board[row][col] = currentPlayer
+        button.text = currentPlayer
+
+        // Check for winner or draw
+        if (checkWinner(row, col)) {
+            isGameOver = true
+            statusTextView.text = "Player $currentPlayer Wins!"
+            Toast.makeText(this, "Player $currentPlayer Wins!", Toast.LENGTH_SHORT).show()
+        } else if (isBoardFull()) {
+            isGameOver = true
+            statusTextView.text = "It's a Draw!"
+        } else {
+            // Switch player
+            currentPlayer = if (currentPlayer == "X") "O" else "X"
+            statusTextView.text = "Player $currentPlayer's Turn"
+        }
     }
 
-    override fun onStart() {
-        super.onStart()
-        Log.d("MainActivity", "onStart")
+    private fun checkWinner(row: Int, col: Int): Boolean {
+        // Check row
+        if (board[row].all { it == currentPlayer }) return true
+
+        // Check column
+        if (board.all { it[col] == currentPlayer }) return true
+
+        // Check diagonals
+        if (row == col && board.indices.all { board[it][it] == currentPlayer }) return true
+        if (row + col == 2 && board.indices.all { board[it][2 - it] == currentPlayer }) return true
+
+        return false
     }
 
-    override fun onStop() {
-        super.onStop()
-        Log.d("MainActivity", "onStop")
+    private fun isBoardFull(): Boolean {
+        return board.all { row -> row.all { it.isNotEmpty() } }
     }
 
-    override fun onPause() {
-        super.onPause()
-        Log.d("MainActivity", "onPause")
+    private fun resetGame() {
+        // Reset board and game state
+        board = Array(3) { Array(3) { "" } }
+        currentPlayer = "X"
+        isGameOver = false
+        statusTextView.text = "Player X's Turn"
+
+        // Clear all buttons
+        for (row in buttons) {
+            for (button in row) {
+                button.text = ""
+            }
+        }
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("MainActivity", "onDestroy")
-    }
-
-
 }
